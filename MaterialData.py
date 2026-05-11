@@ -1,4 +1,8 @@
 import json
+import sys
+from io import TextIOWrapper
+if isinstance(sys.stdout, TextIOWrapper):
+    sys.stdout.reconfigure(encoding="utf-8")
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
