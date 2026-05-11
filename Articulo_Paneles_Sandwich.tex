@@ -1,0 +1,729 @@
+\documentclass[12pt, a4paper, twocolumn]{article}
+
+% ── Paquetes ──────────────────────────────────────────────────────────────────
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{top=2.5cm, bottom=2.5cm, left=2cm, right=2cm, columnsep=0.8cm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{siunitx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{parskip}
+\usepackage{lmodern}
+\usepackage{stfloats}
+
+\sisetup{output-decimal-marker={.}, group-digits=integer, group-minimum-digits=6}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+\twocolumn[%
+  % ─── Cabecera estilo Elsevier ──────────────────────────────────────────────
+  {\parindent0pt\centering
+  \noindent
+  \begin{minipage}[c]{0.13\textwidth}
+    \includegraphics[width=\linewidth]{logo_ipn}
+  \end{minipage}%
+  \hfill
+  \begin{minipage}[c]{0.68\textwidth}\centering
+    {\small\scshape Instituto Politécnico Nacional}\\[0.2em]
+    {\footnotesize Unidad Profesional Interdisciplinaria de Ingeniería\\
+    Campus Guanajuato (UPIIG)}
+  \end{minipage}%
+  \hfill
+  \begin{minipage}[c]{0.13\textwidth}\raggedleft
+    \includegraphics[width=\linewidth]{logo_upiig}
+  \end{minipage}
+
+  \vspace{0.5em}
+  \noindent\rule{\textwidth}{0.8pt}
+  \vspace{0.7em}
+
+  {\LARGE\bfseries
+    Análisis mecánico de paneles sándwich con distintas geometrías de core\\[0.2em]
+    mediante ensayo de flexión a tres puntos\par}
+
+  \vspace{0.8em}
+
+  {\normalsize
+    Diego Guillermo Martinez Roldan\textsuperscript{a},\;
+    Monserrat Medina Galino\textsuperscript{a},\;
+    Diego Emilio Enríquez López\textsuperscript{a}\par}
+
+  \vspace{0.3em}
+  {\small\textit{\textsuperscript{a}Unidad Profesional Interdisciplinaria de Ingeniería
+  Campus Guanajuato (UPIIG), Instituto Politécnico Nacional, Silao de la Victoria,
+  Guanajuato, México}\par}
+
+  \vspace{0.3em}
+  {\small Mayo 2026\par}
+
+  \vspace{0.5em}
+  \noindent\rule{\textwidth}{0.4pt}
+  \vspace{0.7em}
+  }% fin bloque centrado
+  \begin{abstract}
+  Se presenta un análisis comparativo del comportamiento mecánico en flexión a tres
+  puntos de paneles sándwich fabricados con siete geometrías de core distintas: Carritos,
+  Panal, 1\_cp, 2\_ca, 3\_pa, Hexagonal y Lluvia. A partir de los datos brutos
+  registrados por una máquina universal de ensayos, se procesaron las curvas de Fuerza
+  vs.\ Desplazamiento mediante Python (pandas, NumPy, Matplotlib), se calcularon las
+  curvas de Esfuerzo vs.\ Deformación según la teoría de flexión a tres puntos, la
+  energía absorbida por integración trapezoidal, la absorción de energía específica por
+  volumen (SEA) y el módulo de elasticidad en flexión por regresión lineal de la zona
+  elástica. Los resultados muestran diferencias significativas en rigidez, resistencia y
+  capacidad de absorción de energía entre geometrías, siendo 2\_ca la geometría más
+  eficiente en SEA y Hexagonal la de mayor esfuerzo máximo normalizado.
+  \end{abstract}
+  \vspace{1.5em}
+]
+
+% ── 1. Introducción ───────────────────────────────────────────────────────────
+\section{Introducción}
+
+Las estructuras sándwich combinan dos caras de alta rigidez separadas por un core
+ligero, logrando elevadas relaciones rigidez-peso y resistencia-peso que las hacen
+atractivas en aplicaciones aeroespaciales, automotrices y de construcción naval. La
+geometría del core influye directamente en la respuesta mecánica del panel: su rigidez
+a cortante, su capacidad de absorción de energía y su modo de falla.
+
+El ensayo de flexión a tres puntos (norma ASTM C393 y equivalentes) es el método
+estándar para caracterizar paneles sándwich, ya que permite obtener directamente las
+propiedades en flexión del sistema completo a partir de medidas de fuerza y
+desplazamiento del punto de carga.
+
+El objetivo de este trabajo es comparar siete geometrías de core distintas mediante:
+\begin{enumerate}
+    \item Curvas de Fuerza vs.\ Desplazamiento.
+    \item Curvas de Esfuerzo vs.\ Deformación.
+    \item Energía absorbida e índice SEA.
+    \item Módulo de elasticidad en flexión.
+    \item Comparación multipropiedad mediante gráfica radar.
+\end{enumerate}
+
+% ── 2. Metodología ────────────────────────────────────────────────────────────
+\section{Metodología}
+
+\subsection{Configuración del ensayo}
+
+Los ensayos se realizaron en una máquina universal con velocidad de desplazamiento de
+\SI{10}{mm/min} sobre probetas de geometría plana. Los parámetros geométricos de cada
+probeta se resumen en la Tabla~\ref{tab:dimensiones}.
+
+\begin{table*}[!t]
+\centering
+\caption{Dimensiones de las probetas ensayadas.}
+\label{tab:dimensiones}
+\begin{tabular}{@{}lSSS@{}}
+\toprule
+\textbf{Geometría} & \textbf{Espesor $h$ (mm)} & \textbf{Anchura $b$ (mm)} & \textbf{Soporte $L$ (mm)} \\
+\midrule
+Carritos  & 27.000 & 76.000  & 160 \\
+Panal     & 32.000 & 209.000 & 160 \\
+1\_cp     & 25.146 & 20.000  & 200 \\
+2\_ca     & 25.146 & 20.000  & 200 \\
+3\_pa     & 27.432 & 20.000  & 200 \\
+Hexagonal & 24.000 & 21.000  & 100 \\
+Lluvia    & 24.000 & 20.000  & 100 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Procesamiento de datos}
+
+Los archivos CSV exportados por la máquina presentan un formato con tres filas de
+encabezado (nombre de geometría, nombre de columna y unidad) seguidas de los datos
+numéricos. El procesamiento se realizó con Python 3.14 usando las bibliotecas
+\texttt{pandas}, \texttt{NumPy} y \texttt{Matplotlib}.
+
+\subsection{Conversión a esfuerzo y deformación}
+
+A partir de la teoría de vigas en flexión a tres puntos, el esfuerzo normal máximo
+$\sigma$ y la deformación superficial $\varepsilon$ se calculan como:
+
+\begin{equation}
+    \sigma = \frac{3\,F\,L}{2\,b\,h^{2}}
+    \label{eq:esfuerzo}
+\end{equation}
+
+\begin{equation}
+    \varepsilon = \frac{6\,d\,h}{L^{2}}
+    \label{eq:deformacion}
+\end{equation}
+
+donde $F$ es la fuerza aplicada (\si{N}), $d$ el desplazamiento central (\si{mm}), $L$
+la distancia entre apoyos, $b$ la anchura y $h$ el espesor de la probeta (todos en
+\si{mm}).
+
+\subsection{Energía absorbida y SEA}
+
+La energía absorbida $U$ se obtuvo mediante integración trapezoidal del área bajo la
+curva $F$--$d$:
+
+\begin{equation}
+    U = \int_0^{d_f} F\,\mathrm{d}d \approx \sum_{i} \frac{F_i + F_{i+1}}{2}\,\Delta d_i
+    \label{eq:energia}
+\end{equation}
+
+La absorción de energía específica por volumen (SEA) se define como:
+
+\begin{equation}
+    \mathrm{SEA} = \frac{U}{V} = \frac{U}{L \cdot b \cdot h}
+    \label{eq:sea}
+\end{equation}
+
+\subsection{Módulo de elasticidad en flexión}
+
+El módulo de elasticidad en flexión $E_f$ se estimó ajustando una regresión lineal
+(mínimos cuadrados) a la zona elástica inicial (primer 20\,\% de los datos), equivalente
+a la pendiente de la curva $\sigma$--$\varepsilon$:
+
+\begin{equation}
+    E_f = \frac{\Delta\sigma}{\Delta\varepsilon}
+    \label{eq:modulo}
+\end{equation}
+
+% ── 3. Resultados ─────────────────────────────────────────────────────────────
+\section{Resultados}
+
+\subsection{Curvas de Fuerza vs.\ Desplazamiento}
+
+La Figura~\ref{fig:fd_todas} presenta las curvas de Fuerza vs.\ Desplazamiento de las
+siete geometrías superpuestas. Se distinguen claramente tres tipos de comportamiento:
+\textbf{(1) falla frágil abrupta} en Hexagonal y Panal, que presentan carga casi lineal
+hasta el pico seguida de caída instantánea; \textbf{(2) colapso progresivo} en 1\_cp y
+3\_pa, con múltiples picos secundarios entre 2 y 20\,mm de desplazamiento, indicativos
+del colapso secuencial de celdas del core; y \textbf{(3) comportamiento dúctil} en
+2\_ca y Lluvia, que mantienen resistencia portante significativa tras la falla inicial.
+Carritos exhibe la menor fuerza absoluta de todo el conjunto, reflejo de sus grandes
+dimensiones transversales y baja densidad del core. Las curvas individuales por
+geometría se presentan en la Sección~\ref{sec:individuales}.
+
+\begin{figure*}[!tp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figuras/fig1_fuerza_desplazamiento.png}
+    \caption{Curvas Fuerza vs.\ Desplazamiento de las siete geometrías. Se aprecia la
+    dispersión de rigidez inicial, los múltiples picos de colapso progresivo en 1\_cp y
+    3\_pa, y la zona post-falla sostenida de 2\_ca.}
+    \label{fig:fd_todas}
+\end{figure*}
+
+\subsection{Detección automática del punto de falla}
+
+Para cada geometría se identificó automáticamente el punto de fuerza máxima mediante
+\texttt{idxmax()}. Las figuras de falla (Sección~\ref{sec:individuales}) dividen la
+curva en tres zonas: \textbf{zona elástica} (verde), respuesta lineal reversible;
+\textbf{zona plástica} (naranja), acumulación de daño progresivo; y \textbf{zona
+post-falla} (rojo), resistencia residual de las caras del sándwich tras el colapso del
+core.
+
+El tamaño relativo de cada zona es diagnóstico del mecanismo de falla: geometrías con
+core de celda cerrada (Hexagonal, Panal) muestran una zona elástica dominante y zona
+plástica mínima, mientras que cores con geometría abierta y múltiples puntos de apoyo
+(1\_cp, 2\_ca, 3\_pa) presentan una zona plástica extensa con redistribución continua
+de carga.
+
+\subsection{Curvas de Esfuerzo vs.\ Deformación}
+
+La Figura~\ref{fig:se_todas} muestra las curvas $\sigma$--$\varepsilon$ calculadas
+mediante las Ec.~(\ref{eq:esfuerzo})~y~(\ref{eq:deformacion}). La normalización por
+dimensiones elimina el efecto del tamaño de la probeta y permite comparar directamente
+la resistencia intrínseca de cada geometría. Destaca la gran separación entre el grupo
+de alta resistencia (Hexagonal, 1\_cp, 3\_pa y 2\_ca, con $\sigma_\text{max}$ entre
+18 y \SI{24}{N/mm^2}) y el grupo de baja resistencia normalizada (Panal y Carritos,
+por debajo de \SI{3}{N/mm^2}), evidenciando que la sección transversal reducida
+($b = 20$--$21$\,mm) concentra eficientemente el esfuerzo. Lluvia ocupa una posición
+intermedia con $\sigma_\text{max} = \SI{11.6}{N/mm^2}$.
+
+\begin{figure*}[!tp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figuras/fig2_esfuerzo_deformacion.png}
+    \caption{Curvas Esfuerzo vs.\ Deformación de las siete geometrías. El grupo de alta
+    resistencia (Hexagonal, 1\_cp, 2\_ca, 3\_pa) se separa claramente de Panal y
+    Carritos, cuya baja resistencia normalizada refleja su gran sección transversal.}
+    \label{fig:se_todas}
+\end{figure*}
+
+\subsection{Energía absorbida y absorción específica (SEA)}
+
+La Tabla~\ref{tab:resultados} resume los principales resultados cuantitativos. La
+Figura~\ref{fig:sea} presenta el índice SEA de cada geometría. Destaca que 2\_ca
+lidera ampliamente con \SI{0.102}{N\cdot mm/mm^3}, más del doble que 3\_pa
+(\SI{0.063}{N\cdot mm/mm^3}) en segunda posición. Panal y Carritos quedan muy por
+debajo de la media, pese a que Panal registra la mayor energía absoluta
+(\SI{2622.7}{N\cdot mm}): su gran volumen de probeta diluye la eficiencia
+energética. Esto confirma que el SEA es una métrica más representativa que la energía
+absoluta para comparar cores de distintas dimensiones.
+
+\begin{table*}[!t]
+\centering
+\caption{Resultados del análisis mecánico por geometría. Los valores negativos de
+$E_f$ en 1\_cp y 3\_pa indican que la regresión capturó una zona con pendiente
+descendente; deben interpretarse con cautela.}
+\label{tab:resultados}
+\small
+\begin{tabular}{@{}lSSSSS@{}}
+\toprule
+\textbf{Geometría} & \textbf{$F_\text{max}$ (N)} & \textbf{$\sigma_\text{max}$ (N/mm²)} & \textbf{$U$ (N·mm)} & \textbf{SEA (N·mm/mm³)} & \textbf{$E_f$ (N/mm²)} \\
+\midrule
+Carritos  & 218.87  & 0.9481  & 80.79    & 0.00025 &  579.3 \\
+Panal     & 2236.70 & 2.5083  & 2622.73  & 0.00245 &   28.2 \\
+1\_cp     & 910.38  & 21.596  & 5128.70  & 0.05099 &  -88.4 \\
+2\_ca     & 760.13  & 18.032  & 10269.78 & 0.10210 &  328.1 \\
+3\_pa     & 1005.94 & 20.052  & 6896.87  & 0.06285 & -105.3 \\
+Hexagonal & 1897.62 & 23.532  & 2589.71  & 0.05138 &  294.2 \\
+Lluvia    & 892.69  & 11.624  & 3011.36  & 0.06274 &   87.0 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/fig4_sea_barras.png}
+    \caption{Absorción de energía específica por volumen (SEA). La línea roja discontinua
+    indica la media del conjunto. 2\_ca supera a todas las geometrías con un SEA más
+    del doble que el segundo lugar.}
+    \label{fig:sea}
+\end{figure}
+
+\subsection{Comparación multipropiedad — gráfica radar}
+
+La Figura~\ref{fig:radar} normaliza las cuatro propiedades al máximo de cada categoría
+y las representa en ejes polares. Ninguna geometría domina en todos los ejes
+simultáneamente. 2\_ca presenta el perfil más equilibrado: lidera en SEA, mantiene
+alto esfuerzo y energía, aunque su módulo es moderado. Hexagonal destaca en esfuerzo
+pero sacrifica SEA y energía absoluta. Panal ocupa un área grande en energía absorbida
+pero es prácticamente nulo en el eje de esfuerzo, reflejando el ya mencionado efecto
+del volumen. Carritos ocupa el área más pequeña de todo el radar, confirmando su bajo
+desempeño global.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\columnwidth]{figuras/fig5_radar.png}
+    \caption{Gráfica radar de propiedades normalizadas al máximo de cada categoría.
+    2\_ca presenta el perfil más equilibrado; Hexagonal lidera en esfuerzo; Panal
+    domina energía absorbida a costa de bajo esfuerzo normalizado.}
+    \label{fig:radar}
+\end{figure}
+
+% ── 4. Análisis estadístico ───────────────────────────────────────────────────
+\section{Análisis estadístico}
+
+\subsection{Distribución de la Fuerza — diagrama de caja}
+
+La Tabla~\ref{tab:estadisticas} y la Figura~\ref{fig:boxplot} caracterizan la
+distribución de la fuerza registrada durante cada ensayo. 2\_ca exhibe el IQR más
+reducido del grupo de alta fuerza (\SI{113.2}{N}), indicando una respuesta muy
+consistente y repetible a lo largo del ensayo. Hexagonal y Panal presentan medianas
+superiores a \SI{877}{N} con IQR elevado, reflejo de la gran variabilidad asociada
+a su transición abrupta entre carga y post-falla. 3\_pa registra el mayor número de
+puntos ($n = 14{,}300$) y la media más baja (\SI{289.4}{N}) del grupo de alta
+resistencia, evidenciando una larga zona de post-falla a baja carga. Carritos tiene
+la distribución más compacta y de menor magnitud del conjunto.
+
+\begin{table*}[!t]
+\centering
+\caption{Estadísticas descriptivas de la Fuerza registrada por geometría.}
+\label{tab:estadisticas}
+\small
+\begin{tabular}{@{}lrSSSSS@{}}
+\toprule
+\textbf{Geometría} & \textbf{$n$} & \textbf{Media (N)} & \textbf{Desv.Est.\ (N)} & \textbf{Mediana (N)} & \textbf{IQR (N)} & \textbf{Máx (N)} \\
+\midrule
+Carritos  &   382 &  127.0 &   68.7 &  134.7 &  122.4 &  218.9 \\
+Panal     &  1661 &  947.4 &  729.7 &  902.9 & 1374.1 & 2236.7 \\
+1\_cp     &  9339 &  329.5 &  134.2 &  322.1 &  148.5 &  910.4 \\
+2\_ca     & 11359 &  542.5 &  132.0 &  555.9 &  113.2 &  760.1 \\
+3\_pa     & 14300 &  289.4 &  193.1 &  195.9 &  213.3 & 1005.9 \\
+Hexagonal &  1774 &  875.9 &  609.2 &  877.9 & 1142.0 & 1897.6 \\
+Lluvia    &  3901 &  463.2 &  296.0 &  481.4 &  564.4 &  892.7 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[!tp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figuras/fig6_boxplot.png}
+    \caption{Diagrama de caja de la Fuerza registrada. El rombo negro indica la media
+    y la línea roja la mediana. La amplitud de la caja refleja la variabilidad durante
+    el ensayo: alta en Panal y Hexagonal (falla abrupta), baja en 2\_ca (comportamiento
+    sostenido).}
+    \label{fig:boxplot}
+\end{figure*}
+
+\subsection{Correlación entre propiedades mecánicas}
+
+La Figura~\ref{fig:heatmap} muestra el mapa de correlaciones de Pearson entre las
+cuatro propiedades. SEA y $\sigma_\text{max}$ presentan correlación positiva fuerte
+($r = 0.74$), indicando que las geometrías de alta resistencia también disipan más
+energía por unidad de volumen — una relación deseable en aplicaciones estructurales.
+La energía absorbida $U$ correlaciona positivamente con SEA ($r = 0.85$) y con
+$\sigma_\text{max}$ ($r = 0.57$), pero correlaciona negativamente con el módulo de
+flexión $E_f$ ($r = -0.31$), evidenciando que las geometrías más rígidas no son
+necesariamente las que más energía absorben. Esta independencia entre rigidez y
+disipación sugiere que son controladas por mecanismos de daño distintos.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\columnwidth]{figuras/fig7_heatmap_correlacion.png}
+    \caption{Mapa de correlaciones de Pearson. La pareja SEA--$\sigma_\text{max}$
+    ($r=0.74$) y la pareja Energía--SEA ($r=0.85$) son las correlaciones más fuertes;
+    el módulo $E_f$ es prácticamente independiente de las demás propiedades.}
+    \label{fig:heatmap}
+\end{figure}
+
+\subsection{Selección de geometría óptima — método TOPSIS}
+
+El método TOPSIS (\textit{Technique for Order of Preference by Similarity to Ideal
+Solution}) clasifica las alternativas según su distancia euclídea a la solución ideal
+positiva y negativa~\cite{hwang}. Se emplearon cuatro criterios con peso igual
+($w = 0.25$): $\sigma_\text{max}$, $U$, SEA y $E_f$, todos bajo el criterio
+``mayor es mejor''.
+
+La Figura~\ref{fig:topsis} y la Tabla~\ref{tab:topsis} muestran el resultado: 2\_ca
+obtiene el score más alto (\num{0.770}), seguida de Hexagonal (\num{0.531}).
+La ventaja de 2\_ca es sostenida: lidera en SEA y $U$, y mantiene esfuerzo alto.
+Panal queda último (\num{0.173}) porque su gran $U$ absoluta no compensa su bajo
+esfuerzo y módulo. Este ranking cambiará si se asignan pesos diferenciados según el
+requisito de diseño (p.ej., priorizar SEA en impacto eleva aún más a 2\_ca).
+
+\begin{figure*}[!tp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figuras/fig8_topsis.png}
+    \caption{Ranking TOPSIS (pesos iguales). 2\_ca lidera con score \num{0.770};
+    Panal ocupa el último lugar pese a su alta energía absoluta, penalizado por su
+    bajo esfuerzo y módulo.}
+    \label{fig:topsis}
+\end{figure*}
+
+\begin{table}[H]
+\centering
+\caption{Scores y posición en el ranking TOPSIS ($w=0.25$ por criterio).}
+\label{tab:topsis}
+\small
+\begin{tabular}{@{}clS@{}}
+\toprule
+\textbf{Posición} & \textbf{Geometría} & \textbf{Score} \\
+\midrule
+1 & 2\_ca     & 0.7698 \\
+2 & Hexagonal & 0.5305 \\
+3 & Carritos  & 0.4532 \\
+4 & 3\_pa     & 0.4381 \\
+5 & 1\_cp     & 0.3994 \\
+6 & Lluvia    & 0.3875 \\
+7 & Panal     & 0.1733 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evolución de la rigidez instantánea}
+
+La rigidez instantánea $k(d)$ mide la tasa de cambio local de la fuerza con el
+desplazamiento (Ec.~\ref{eq:rigidez}) y se calculó mediante diferencias finitas
+centrales:
+\begin{equation}
+    k(d) = \frac{\mathrm{d}F}{\mathrm{d}d}
+    \label{eq:rigidez}
+\end{equation}
+
+La Figura~\ref{fig:rigidez} revela diferencias cualitativas importantes entre
+geometrías. Hexagonal y Panal mantienen $k > 0$ hasta el instante de falla y
+colapsan a $k < 0$ de forma abrupta, confirmando su comportamiento frágil. En
+contraste, 2\_ca y Lluvia muestran una transición gradual a valores negativos, con
+varias oscilaciones alrededor de $k = 0$ que evidencian redistribuciones parciales
+de carga antes del colapso definitivo. Las geometrías 1\_cp y 3\_pa exhiben el
+comportamiento más complejo: rigidez positiva en la zona de carga inicial, seguida
+de múltiples ciclos de recarga y descarga a lo largo del ensayo.
+
+\begin{figure*}[!tp]
+    \centering
+    \includegraphics[width=0.92\textwidth]{figuras/fig9_rigidez_instantanea.png}
+    \caption{Rigidez instantánea $\mathrm{d}F/\mathrm{d}d$. La línea en $k=0$
+    delimita la zona de carga y la de \textit{softening}. Hexagonal y Panal colapsan
+    de forma abrupta; 2\_ca y Lluvia muestran degradación gradual.}
+    \label{fig:rigidez}
+\end{figure*}
+
+% ── 5. Discusión ──────────────────────────────────────────────────────────────
+\section{Discusión}
+
+Los resultados revelan perfiles mecánicos marcadamente distintos entre geometrías:
+
+\begin{itemize}
+    \item \textbf{2\_ca} destaca como la geometría más eficiente en SEA
+    (\SI{0.102}{N\cdot mm/mm^3}), superando al segundo lugar en más del 60\,\%, y
+    es la única que combina alto esfuerzo, alta energía y baja dispersión estadística.
+
+    \item \textbf{Hexagonal} alcanza el mayor esfuerzo máximo (\SI{23.53}{N/mm^2})
+    y el segundo lugar en TOPSIS, pero sacrifica SEA y tenacidad post-falla por su
+    comportamiento frágil.
+
+    \item \textbf{Panal} registra la mayor energía absoluta (\SI{2622.7}{N\cdot mm})
+    pero queda último en TOPSIS, penalizado por su bajo esfuerzo normalizado y módulo.
+    Su gran volumen de probeta infla la energía sin reflejar eficiencia real del
+    material.
+
+    \item \textbf{Carritos} muestra el desempeño más bajo en esfuerzo y SEA,
+    posiblemente porque su geometría de core no estaba optimizada para flexión pura.
+
+    \item La correlación negativa entre $E_f$ y energía absorbida ($r = -0.31$)
+    confirma que rigidez y disipación son propiedades no acopladas en esta familia
+    de materiales, controladas por mecanismos de daño distintos.
+
+    \item La rigidez instantánea permite distinguir cuantitativamente entre falla
+    frágil (caída abrupta de $k$) y falla progresiva (degradación gradual),
+    complementando la información de las curvas $F$--$d$.
+\end{itemize}
+
+% ── 6. Conclusiones ───────────────────────────────────────────────────────────
+\section{Conclusiones}
+
+\begin{enumerate}
+    \item Se implementó un flujo de análisis completo en Python para procesar,
+    visualizar y caracterizar mecánicamente siete geometrías de core de paneles
+    sándwich bajo flexión a tres puntos.
+
+    \item La geometría de core influye de forma determinante en la rigidez,
+    resistencia y capacidad de absorción de energía del panel sándwich.
+
+    \item El índice SEA es una métrica más representativa que la energía absoluta
+    para comparar geometrías de distintas dimensiones.
+
+    \item El análisis estadístico (boxplot, correlaciones) y el método TOPSIS
+    complementan el análisis mecánico clásico, aportando una visión objetiva del
+    comportamiento de cada geometría.
+
+    \item La gráfica radar evidencia que ninguna geometría domina en todas las
+    propiedades simultáneamente, subrayando la importancia de definir criterios
+    de diseño específicos según la aplicación.
+
+    \item El código desarrollado es reutilizable y extensible para incorporar nuevas
+    geometrías, propiedades adicionales o criterios de peso diferenciados en TOPSIS.
+\end{enumerate}
+
+% ── 7. Figuras individuales por geometría ─────────────────────────────────────
+\clearpage
+\section{Figuras individuales por geometría}
+\label{sec:individuales}
+
+\subsection{Curvas F--d individuales}
+
+Las curvas individuales de la Figura~\ref{fig:fd_individuales} revelan patrones que
+quedan ocultos en la gráfica superpuesta. Carritos alcanza solo \SI{218.9}{N} a los
+\SI{0.44}{mm}, con una caída suave que indica resistencia residual del laminado.
+Panal sube casi linealmente hasta \SI{2236.7}{N} a \SI{2.74}{mm} y colapsa en
+forma abrupta, comportamiento típico de colapso simultáneo de celdas. 1\_cp y 3\_pa
+exhiben falla temprana seguida de múltiples picos secundarios entre 2 y 20\,mm,
+evidencia de colapso progresivo capa a capa. 2\_ca destaca por sostener
+\SI{500}{}--\SI{600}{N} durante más de \SI{10}{mm} tras la falla inicial, lo que
+explica su alto SEA. Hexagonal replica el patrón frágil del Panal pero a menor
+desplazamiento (\SI{2.94}{mm}). Lluvia muestra una carga progresiva no lineal con
+falla abrupta a \SI{6.48}{mm}, sin redistribuciones secundarias apreciables.
+
+\begin{figure*}[!tp]
+    \centering
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig1b_fuerza_desplazamiento_Carritos.png}
+        \caption{Carritos ($F_\text{max}=218.9$\,N @ 0.44\,mm)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig1b_fuerza_desplazamiento_Panal.png}
+        \caption{Panal ($F_\text{max}=2236.7$\,N @ 2.74\,mm)}
+    \end{subfigure}
+
+    \vspace{0.3em}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig1b_fuerza_desplazamiento_1_cp.png}
+        \caption{1\_cp ($F_\text{max}=910.4$\,N @ 0.86\,mm)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig1b_fuerza_desplazamiento_2_ca.png}
+        \caption{2\_ca ($F_\text{max}=760.1$\,N @ 11.74\,mm)}
+    \end{subfigure}
+
+    \vspace{0.3em}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig1b_fuerza_desplazamiento_3_pa.png}
+        \caption{3\_pa ($F_\text{max}=1005.9$\,N @ 3.07\,mm)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig1b_fuerza_desplazamiento_hexagonal.png}
+        \caption{Hexagonal ($F_\text{max}=1897.6$\,N @ 2.94\,mm)}
+    \end{subfigure}
+
+    \vspace{0.3em}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig1b_fuerza_desplazamiento_lluvia.png}
+        \caption{Lluvia ($F_\text{max}=892.7$\,N @ 6.48\,mm)}
+    \end{subfigure}
+    \caption{Curvas Fuerza vs.\ Desplazamiento individuales. El punto rojo señala la
+    fuerza máxima registrada en cada ensayo.}
+    \label{fig:fd_individuales}
+\end{figure*}
+
+\subsection{Zonas de comportamiento mecánico}
+
+La Figura~\ref{fig:fallas} compara las zonas elástica, plástica y post-falla de cada
+geometría. Carritos y Hexagonal tienen la zona elástica más larga en proporción pero
+la zona plástica más corta, comportamiento frágil puro. Panal muestra carga lineal
+prolongada con transición directa a post-falla sin zona plástica apreciable. 1\_cp
+y 3\_pa exhiben zona plástica extensa y oscilante, con redistribuciones de carga que
+elevan la energía absorbida. 2\_ca presenta la zona post-falla más larga de todas:
+la curva se mantiene elevada durante más de \SI{10}{mm} tras el pico, explicando su
+liderazgo en SEA. Lluvia muestra zonas de tamaño intermedio con transición moderada.
+
+\begin{figure*}[!tp]
+    \centering
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig3_falla_Carritos.png}
+        \caption{Carritos: falla frágil, post-falla corta.}
+        \label{fig:falla_carritos}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig3_falla_Panal.png}
+        \caption{Panal: zona elástica dominante, colapso abrupto.}
+        \label{fig:falla_panal}
+    \end{subfigure}
+
+    \vspace{0.3em}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig3_falla_1_cp.png}
+        \caption{1\_cp: zona plástica oscilante, colapso progresivo.}
+        \label{fig:falla_1cp}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig3_falla_2_ca.png}
+        \caption{2\_ca: zona post-falla sostenida, mayor tenacidad.}
+        \label{fig:falla_2ca}
+    \end{subfigure}
+
+    \vspace{0.3em}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig3_falla_3_pa.png}
+        \caption{3\_pa: similar a 1\_cp, mayor desplazamiento total.}
+        \label{fig:falla_3pa}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig3_falla_hexagonal.png}
+        \caption{Hexagonal: zona elástica larga, falla frágil abrupta.}
+        \label{fig:falla_hexagonal}
+    \end{subfigure}
+
+    \vspace{0.3em}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig3_falla_lluvia.png}
+        \caption{Lluvia: zonas equilibradas, transición moderada.}
+        \label{fig:falla_lluvia}
+    \end{subfigure}
+    \caption{Zonas de comportamiento mecánico (elástica verde, plástica naranja,
+    post-falla rojo) con el punto de falla detectado automáticamente para las siete
+    geometrías.}
+    \label{fig:fallas}
+\end{figure*}
+
+\subsection{Curvas $\sigma$--$\varepsilon$ individuales}
+
+Las curvas individuales de la Figura~\ref{fig:se_individuales} permiten leer
+directamente la pendiente elástica ($E_f$) y el esfuerzo máximo de cada geometría.
+Carritos muestra esfuerzo muy bajo ($\sigma_\text{max}=\SI{0.95}{N/mm^2}$) con
+deformación al pico pequeña (\SI{0.003}{mm/mm}), confirmando que su core es blando
+y de respuesta breve. Panal presenta la pendiente más baja ($E_f=\SI{28.2}{N/mm^2}$),
+indicando un core extremadamente flexible en relación a su sección. 1\_cp alcanza
+$\sigma_\text{max}=\SI{21.6}{N/mm^2}$ a deformación baja, con redistribuciones
+secundarias a esfuerzos de \SI{5}{}--\SI{10}{N/mm^2}. 2\_ca sostiene esfuerzos de
+\SI{12}{}--\SI{13}{N/mm^2} durante deformaciones superiores a \SI{0.07}{mm/mm},
+resultado coherente con su alta tenacidad. 3\_pa replica el patrón de 1\_cp con
+picos a mayor esfuerzo. Hexagonal muestra la pendiente elástica más pronunciada
+del conjunto y alcanza $\sigma_\text{max}=\SI{23.53}{N/mm^2}$ sin zona post-elástica
+visible. Lluvia presenta pendiente moderada y falla abrupta a
+$\sigma_\text{max}=\SI{11.6}{N/mm^2}$.
+
+\begin{figure*}[!tp]
+    \centering
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig2b_esfuerzo_deformacion_Carritos.png}
+        \caption{Carritos ($\sigma_\text{max}=0.95$\,N/mm²)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig2b_esfuerzo_deformacion_Panal.png}
+        \caption{Panal ($\sigma_\text{max}=2.51$\,N/mm²)}
+    \end{subfigure}
+
+    \vspace{0.3em}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig2b_esfuerzo_deformacion_1_cp.png}
+        \caption{1\_cp ($\sigma_\text{max}=21.60$\,N/mm²)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig2b_esfuerzo_deformacion_2_ca.png}
+        \caption{2\_ca ($\sigma_\text{max}=18.03$\,N/mm²)}
+    \end{subfigure}
+
+    \vspace{0.3em}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig2b_esfuerzo_deformacion_3_pa.png}
+        \caption{3\_pa ($\sigma_\text{max}=20.05$\,N/mm²)}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig2b_esfuerzo_deformacion_hexagonal.png}
+        \caption{Hexagonal ($\sigma_\text{max}=23.53$\,N/mm²)}
+    \end{subfigure}
+
+    \vspace{0.3em}
+    \begin{subfigure}{0.48\textwidth}
+        \includegraphics[width=\textwidth]{figuras/fig2b_esfuerzo_deformacion_lluvia.png}
+        \caption{Lluvia ($\sigma_\text{max}=11.62$\,N/mm²)}
+    \end{subfigure}
+    \caption{Curvas Esfuerzo vs.\ Deformación individuales. El punto rojo señala el
+    esfuerzo máximo de cada geometría.}
+    \label{fig:se_individuales}
+\end{figure*}
+
+% ── Referencias ───────────────────────────────────────────────────────────────
+\clearpage
+\begin{thebibliography}{9}
+
+\bibitem{astm_c393}
+ASTM International.
+\textit{Standard Test Method for Core Shear Properties of Sandwich Constructions by Beam
+Flexure}, ASTM C393/C393M-20.
+West Conshohocken, PA, 2020.
+
+\bibitem{zenkert}
+D.\ Zenkert.
+\textit{An Introduction to Sandwich Construction}.
+Engineering Materials Advisory Services, 1995.
+
+\bibitem{hwang}
+C.\ L.\ Hwang y K.\ Yoon.
+\textit{Multiple Attribute Decision Making: Methods and Applications}.
+Springer, Berlin, 1981.
+
+\bibitem{pandas}
+W.\ McKinney.
+\textit{Data Structures for Statistical Computing in Python}.
+Proceedings of the 9th Python in Science Conference, 2010.
+
+\bibitem{numpy}
+C.\ R.\ Harris et al.
+\textit{Array programming with NumPy}.
+\textit{Nature}, 585:357--362, 2020.
+
+\end{thebibliography}
+
+\end{document}
