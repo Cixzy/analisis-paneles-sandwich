@@ -1,0 +1,22 @@
+# Figuras generadas
+figuras/
+
+# Artefactos de compilación LaTeX
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc
+*.out
+
+# Archivos de configuración de la máquina
+*.xmak
+*.xtak
+
+# Python
+__pycache__/
+*.pyc
+
+# PDFs (generados o binarios grandes)
+*.pdf
