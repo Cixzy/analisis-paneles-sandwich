@@ -87,6 +87,101 @@ No necesitas modificar el código Python.
 
 ---
 
+## Cuando hagas una nueva prueba
+
+Sigue estos pasos cada vez que tengas datos de un ensayo nuevo:
+
+**1.** Copia el CSV que exportó la máquina a la misma carpeta que `MaterialData.py`
+
+**2.** Abre `config.json` con cualquier editor de texto y cambia:
+
+- `"archivo_csv"` → el nombre exacto de tu nuevo CSV
+- `"geometrias"` → los nombres y dimensiones de las geometrías nuevas
+
+Los valores `h`, `b` y `L` los encuentras en el **PDF de informe** que genera la máquina:
+
+| PDF          | config.json |
+|--------------|-------------|
+| Espesor      | `h`         |
+| Anchura      | `b`         |
+| Soporte_inferior | `L`     |
+
+**Ejemplo:**
+```json
+{
+  "archivo_csv": "Ensayo_Octubre2026.csv",
+  "geometrias": {
+    "Rombo":     {"h": 25.0, "b": 22.0, "L": 150},
+    "Triangulo": {"h": 28.5, "b": 20.0, "L": 150},
+    "Estrella":  {"h": 24.0, "b": 21.0, "L": 100}
+  }
+}
+```
+
+**3.** Corre el programa:
+```
+python MaterialData.py
+```
+
+Las figuras se guardan en `figuras/` y se sobreescriben si ya existían.
+
+> Si una geometría está en el CSV pero no en el config.json, el programa la omite con un aviso.
+> Si quieres analizar varias pruebas distintas, guarda una copia del config.json por cada ensayo.
+
+### Analizar solo algunas geometrías
+
+Pon únicamente las que te interesen en `"geometrias"`. Las demás se omiten automáticamente.
+
+### Comparar geometrías de dos sesiones distintas
+
+La máquina genera un CSV por sesión. Para compararlas juntas, primero únelas en Excel:
+
+1. Abre ambos CSV en Excel
+2. Copia todas las columnas del segundo CSV y pégalas **a la derecha** del primero
+   (respetando el formato: fila 1 = nombres, fila 2 = columnas, fila 3 = unidades)
+3. Guarda como nuevo CSV, por ejemplo `Comparacion.csv`
+4. En `config.json` pon el nombre del archivo nuevo y las dimensiones de **todas** las geometrías incluidas
+
+El programa no distingue de qué sesión vienen los datos — solo necesita que estén en el mismo archivo con el formato correcto.
+
+---
+
+## Actualizar el repositorio de GitHub
+
+Cada vez que modifiques algo (el código, el config.json, etc.) tienes que subir los cambios
+manualmente con estos 3 comandos en la terminal, **en este orden**:
+
+**1. Registrar qué archivos cambiaron:**
+```
+git add .
+```
+
+**2. Guardar los cambios con una descripción:**
+```
+git commit -m "descripción breve de lo que cambiaste"
+```
+
+**3. Subir a GitHub:**
+
+Primero pon tu token en la URL (reemplaza `TU_TOKEN`):
+```
+git remote set-url origin https://Cixzy:TU_TOKEN@github.com/Cixzy/analisis-paneles-sandwich.git
+```
+Luego sube:
+```
+git push
+```
+Y después borra el token de la URL:
+```
+git remote set-url origin https://github.com/Cixzy/analisis-paneles-sandwich.git
+```
+
+> El token lo generas en github.com → foto de perfil → Settings → Developer settings →
+> Personal access tokens → Tokens (classic) → Generate new token (classic).
+> Marca solo la casilla **repo** y cópialo antes de cerrar la página.
+
+---
+
 ## Notas
 
 - Si una geometría aparece en el CSV pero **no** en el config.json, el programa la omite
